@@ -151,7 +151,7 @@ func (w *WAL) readSegment(f *os.File, entryLoaders []NewEntryFunc) (lastOffset u
 	return lastOffset, r.Err()
 }
 
-func (w *WAL) Write(e Entry) (uint32, error) {
+func (w *WAL) Write(e Entry) (offset uint32, err error) {
 	// TODO: limit how many concurrent encodings can be in flight.  Since we can only
 	//	     write one at a time to disk, a slow disk can cause the allocations below
 	//	     to increase quickly.  If we're backed up, wait until others have completed.
@@ -170,7 +170,7 @@ func (w *WAL) Write(e Entry) (uint32, error) {
 	// block when delivering the sync results.
 	syncResult := make(chan error, 1)
 
-	offset, err := w.write(e.Type(), entryPayload, entryChecksum, syncResult)
+	offset, err = w.write(e.Type(), entryPayload, entryChecksum, syncResult)
 
 	// First, put back the buffer. We don't have to clean it because it is
 	// completely overwritten, the next time it is used.
