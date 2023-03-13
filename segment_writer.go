@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// The SegmentWriter is responsible for writing WAL entries to disk.
+// The SegmentWriter is responsible for writing WAL entry records to disk.
 // This type handles the necessary buffered I/O as well as file system syncing.
 //
 // Every Entry is written, using the following binary layout (big endian format):
@@ -16,7 +16,7 @@ import (
 //	  └─────────────┴───────────┴──────────┴─────────┘
 //
 //		- Offset = 32bit WAL entry number for each record in order to implement a low-water mark
-//		- Type = Type of WAL record (e.g. InsertPoint)
+//		- Type = Type of WAL entry
 //		- CRC = 32bit hash computed over the payload using CRC
 //		- Payload = The actual WAL entry payload data
 type SegmentWriter struct {
