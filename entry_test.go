@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ExampleEntry is an Entry implementation that is used in unit tests.
-type ExampleEntry struct {
+// ExampleEntry1 is an Entry implementation that is used in unit tests.
+type ExampleEntry1 struct {
 	ID    uint32
 	Point []float32
 }
@@ -34,19 +34,19 @@ const (
 // ExampleEntries is the EntryRegistry that contains all known example Entry
 // implementations.
 var ExampleEntries = NewEntryRegistry(
-	NewExampleEntry,
+	NewExampleEntry1,
 	NewExampleEntry2,
 )
 
-func NewExampleEntry() Entry {
-	return new(ExampleEntry)
+func NewExampleEntry1() Entry {
+	return new(ExampleEntry1)
 }
 
-func (*ExampleEntry) Type() EntryType {
+func (*ExampleEntry1) Type() EntryType {
 	return ExampleEntryType
 }
 
-func (e *ExampleEntry) EncodePayload(b []byte) []byte {
+func (e *ExampleEntry1) EncodePayload(b []byte) []byte {
 	size := 4 + 2 + 4*len(e.Point)
 	if len(b) < size {
 		b = append(b, make([]byte, size-len(b))...)
@@ -62,7 +62,7 @@ func (e *ExampleEntry) EncodePayload(b []byte) []byte {
 	return b[:size]
 }
 
-func (*ExampleEntry) ReadPayload(r io.Reader) ([]byte, error) {
+func (*ExampleEntry1) ReadPayload(r io.Reader) ([]byte, error) {
 	buffer := make([]byte, 6) // 4B ID + 2B Point Dimension
 	n, err := io.ReadFull(r, buffer)
 	if err == io.EOF || n != len(buffer) {
@@ -83,7 +83,7 @@ func (*ExampleEntry) ReadPayload(r io.Reader) ([]byte, error) {
 	return append(buffer, values...), nil
 }
 
-func (e *ExampleEntry) DecodePayload(b []byte) error {
+func (e *ExampleEntry1) DecodePayload(b []byte) error {
 	r := bytes.NewBuffer(b)
 
 	var err error
@@ -176,8 +176,8 @@ func (e *ExampleEntry2) DecodePayload(b []byte) error {
 	return nil
 }
 
-func TestExampleEntry(t *testing.T) {
-	original := &ExampleEntry{
+func TestExampleEntry1(t *testing.T) {
+	original := &ExampleEntry1{
 		ID:    5546132,
 		Point: []float32{1, 2, 3, 4, 5},
 	}
@@ -186,7 +186,7 @@ func TestExampleEntry(t *testing.T) {
 	encoded = original.EncodePayload(encoded)
 	r := bytes.NewBuffer(encoded)
 
-	decoded := NewExampleEntry()
+	decoded := NewExampleEntry1()
 	input, err := decoded.ReadPayload(r)
 	require.NoError(t, err)
 

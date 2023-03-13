@@ -10,7 +10,7 @@ import (
 )
 
 func TestSegmentReader(t *testing.T) {
-	entries := []*ExampleEntry{
+	entries := []*ExampleEntry1{
 		{
 			ID:    42,
 			Point: []float32{1, 2},

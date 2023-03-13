@@ -37,7 +37,7 @@ func TestWAL(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Inserting first couple of entries")
-	inserts := []*ExampleEntry{
+	inserts := []*ExampleEntry1{
 		{ID: 1, Point: []float32{1, 2}},
 		{ID: 2, Point: []float32{3, 4}},
 		{ID: 3, Point: []float32{5, 6}},
@@ -59,7 +59,7 @@ func TestWAL(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Inserting another few entries")
-	inserts2 := []*ExampleEntry{
+	inserts2 := []*ExampleEntry1{
 		{ID: 4, Point: []float32{7, 8}},
 		{ID: 5, Point: []float32{9, 0}},
 	}
@@ -109,9 +109,9 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 	require.NoError(t, err)
 
 	n := 100
-	inserts := make([]*ExampleEntry, n)
+	inserts := make([]*ExampleEntry1, n)
 	for i := range inserts {
-		inserts[i] = &ExampleEntry{
+		inserts[i] = &ExampleEntry1{
 			ID:    uint32(i + 1),
 			Point: []float32{rand.Float32() * 10, rand.Float32() * 10},
 		}
@@ -120,7 +120,7 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	for _, x := range inserts {
 		wg.Add(1)
-		go func(e *ExampleEntry) {
+		go func(e *ExampleEntry1) {
 			_, err := wal.Write(e)
 			assert.NoError(t, err)
 			wg.Done()
@@ -133,12 +133,12 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-var exampleBenchmarkEntries [100]*ExampleEntry
+var exampleBenchmarkEntries [100]*ExampleEntry1
 
 func init() {
 	rand.Seed(time.Now().UnixMilli())
 	for i := range exampleBenchmarkEntries {
-		exampleBenchmarkEntries[i] = &ExampleEntry{
+		exampleBenchmarkEntries[i] = &ExampleEntry1{
 			ID:    uint32(i + 1),
 			Point: []float32{rand.Float32() * 10, rand.Float32() * 10},
 		}
