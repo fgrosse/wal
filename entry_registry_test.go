@@ -48,7 +48,7 @@ func TestNewEntryRegistryNew(t *testing.T) {
 	assert.NoError(t, err)
 	assert.IsType(t, new(ExampleEntry1), e)
 
-	e, err = r.New(ExampleEntry2Type)
-	assert.EqualError(t, err, "unknown WAL entry type 1")
+	e, err = r.New(EntryType(255))
+	assert.EqualError(t, err, "unknown WAL entry type 255")
 	assert.Nil(t, e)
 }

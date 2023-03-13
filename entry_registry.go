@@ -39,7 +39,7 @@ func (r *EntryRegistry) Register(constructor EntryConstructor) error {
 	entry := constructor()
 	typ := entry.Type()
 	if existing, ok := r.constructors[typ]; ok {
-		return fmt.Errorf(`EntryType %x was already registered to type "%T"`, typ, existing())
+		return fmt.Errorf(`EntryType %d was already registered to type "%T"`, typ, existing())
 	}
 
 	r.constructors[typ] = constructor
@@ -52,7 +52,7 @@ func (r *EntryRegistry) Register(constructor EntryConstructor) error {
 func (r *EntryRegistry) New(typ EntryType) (Entry, error) {
 	newEntry, ok := r.constructors[typ]
 	if !ok {
-		return nil, fmt.Errorf("unknown WAL entry type %x", byte(typ))
+		return nil, fmt.Errorf("unknown WAL entry type %d", typ)
 	}
 
 	return newEntry(), nil
