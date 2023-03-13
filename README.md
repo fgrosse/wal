@@ -18,7 +18,7 @@ The main goal of a Write-ahead Log (WAL) is to make the application more durable
 so it does not lose data in case of a crash. WALs are used in applications such as
 database systems to flush all written data to disk before the changes are written
 to the database. In case of a crash, the WAL enables the application to recover
-lost in-memory changes by reconstructed all required operations from the log.
+lost in-memory changes by reconstructing all required operations from the log.
 
 ## Example usage
 
@@ -145,7 +145,7 @@ You can find an example implementation at [`entry_test.go`](entry_test.go).
 
 Each `WAL.Write(…)` call creates a binary encoding of the passed `wal.Entry` which 
 we call the entry's _payload_. This payload is written to disk together with some
-metadata such as the entry Type, a CRC checksum and an offset number.
+metadata such as the entry type, a CRC checksum and an offset number.
 
 The full binary layout looks like the following:
 
