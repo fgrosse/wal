@@ -34,7 +34,7 @@ type WAL struct {
 
 // New creates a new WAL instance that writes and reads segment files to a
 // directory at the provided path.
-func New(path string, conf Configuration, entryLoaders []NewEntryFunc, logger *zap.Logger) (*WAL, error) {
+func New(path string, conf Configuration, registry *EntryRegistry, logger *zap.Logger) (*WAL, error) {
 	logger.Debug("Creating write-ahead log",
 		zap.String("path", path),
 		zap.Object("configuration", conf),
@@ -62,7 +62,7 @@ func New(path string, conf Configuration, entryLoaders []NewEntryFunc, logger *z
 		},
 	}
 
-	err := wal.load(path, entryLoaders, logger)
+	err := wal.load(path, registry, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load WAL: %w", err)
 	}
@@ -70,7 +70,7 @@ func New(path string, conf Configuration, entryLoaders []NewEntryFunc, logger *z
 	return wal, nil
 }
 
-func (w *WAL) load(path string, entryLoaders []NewEntryFunc, logger *zap.Logger) error {
+func (w *WAL) load(path string, registry *EntryRegistry, logger *zap.Logger) error {
 	logger = logger.With(zap.String("path", path))
 
 	logger.Debug("Checking for existing WAL segment files")
@@ -92,7 +92,7 @@ func (w *WAL) load(path string, entryLoaders []NewEntryFunc, logger *zap.Logger)
 		zap.String("last_segment", lastSegment),
 	)
 
-	segmentWriter, lastOffset, err := w.openSegment(lastSegment, entryLoaders)
+	segmentWriter, lastOffset, err := w.openSegment(lastSegment, registry)
 	if err != nil {
 		return fmt.Errorf("opening last segment: %w", err)
 	}
@@ -118,13 +118,13 @@ func segmentFileNames(dir string) ([]string, error) {
 	return names, nil
 }
 
-func (w *WAL) openSegment(path string, entryLoaders []NewEntryFunc) (*SegmentWriter, uint32, error) {
+func (w *WAL) openSegment(path string, registry *EntryRegistry) (*SegmentWriter, uint32, error) {
 	f, err := os.OpenFile(path, os.O_RDWR, 0666)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	lastOffset, err := w.readSegment(f, entryLoaders)
+	lastOffset, err := w.readSegment(f, registry)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -133,8 +133,8 @@ func (w *WAL) openSegment(path string, entryLoaders []NewEntryFunc) (*SegmentWri
 	return sw, lastOffset, nil
 }
 
-func (w *WAL) readSegment(f *os.File, entryLoaders []NewEntryFunc) (lastOffset uint32, err error) {
-	r, err := NewSegmentReader(f, entryLoaders)
+func (w *WAL) readSegment(f *os.File, registry *EntryRegistry) (lastOffset uint32, err error) {
+	r, err := NewSegmentReader(f, registry)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create WAL segment reader: %w", err)
 	}

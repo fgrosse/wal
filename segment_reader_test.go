@@ -10,7 +10,7 @@ import (
 )
 
 func TestSegmentReader(t *testing.T) {
-	entries := []*ExampleEntry{
+	entries := []*ExampleEntry1{
 		{
 			ID:    42,
 			Point: []float32{1, 2},
@@ -32,7 +32,7 @@ func TestSegmentReader(t *testing.T) {
 		payload := make([]byte, 4+2+4*2)
 		e.EncodePayload(payload)
 		checksum := crc32.ChecksumIEEE(payload)
-		err := w.Write(offset, ExampleEntryType, checksum, payload)
+		err := w.Write(offset, ExampleEntry1Type, checksum, payload)
 		require.NoError(t, err)
 	}
 
@@ -42,7 +42,7 @@ func TestSegmentReader(t *testing.T) {
 
 	require.NoError(t, w.Sync())
 	input := bytes.NewReader(buf.Bytes())
-	r, err := NewSegmentReader(input, ExampleTypes)
+	r, err := NewSegmentReader(input, ExampleEntries)
 	require.NoError(t, err)
 
 	for i, expected := range entries {
