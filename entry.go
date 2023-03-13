@@ -3,6 +3,8 @@ package wal
 import "io"
 
 // Entry is a single record of the Write Ahead Log.
+// It is up to the application that uses the WAL to provide at least one concrete
+// Entry implementation to the WAL via the EntryRegistry.
 type Entry interface {
 	Type() EntryType
 

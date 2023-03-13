@@ -9,6 +9,24 @@ import (
 	"io"
 )
 
+// The SegmentReader is responsible for reading WAL entries from their binary
+// representation, typically from disk. It is used by the WAL to automatically
+// resume the last open segment upon startup, but it can also be used to manually
+// iterate through WAL segments.
+//
+// The complete usage pattern looks like this:
+//
+//	r, err := NewSegmentReader(…)
+//	…
+//
+//	for r.Next() {
+//	  e, offset, err := r.Read()
+//	  …
+//	}
+//
+//	if err := r.Err(); err != nil {
+//	  …
+//	}
 type SegmentReader struct {
 	r        *bufio.Reader
 	offset   uint32
@@ -20,10 +38,13 @@ type SegmentReader struct {
 	registry *EntryRegistry
 }
 
-func NewSegmentReader(r io.Reader, reg *EntryRegistry) (*SegmentReader, error) {
+// NewSegmentReader creates a new SegmentReader that reads encoded WAL entries
+// from the provided reader. The registry is used to map the entry types that
+// have been read to their Entry implementations which contain the decoding logic.
+func NewSegmentReader(r io.Reader, registry *EntryRegistry) (*SegmentReader, error) {
 	return &SegmentReader{
 		r:        bufio.NewReader(r),
-		registry: reg,
+		registry: registry,
 	}, nil
 }
 
@@ -67,20 +88,6 @@ func (r *SegmentReader) Next() bool {
 
 // Read decodes the next Entry and returns it together with its WAL offset.
 // Before any entry can be read, the caller must call SegmentReader.Next() first.
-//
-// The complete usage pattern looks like this:
-//
-//	r, err := NewSegmentReader(…)
-//	…
-//
-//	for r.Next() {
-//	  e, offset, err := r.Read()
-//	  …
-//	}
-//
-//	if err := r.Err(); err != nil {
-//	  …
-//	}
 func (r *SegmentReader) Read() (entry Entry, offset uint32, err error) {
 	if r.err != nil {
 		return nil, 0, r.err
@@ -99,9 +106,9 @@ func (r *SegmentReader) Read() (entry Entry, offset uint32, err error) {
 }
 
 // Err returns any error that happened when calling Next(). This function must
-// be called even if there was not a single Entry to read.
+// always be called even if Next() never returned true.
 //
-// See SegmentReader.Read() to see the full usage pattern.
+// Please refer to the comment on the SegmentReader type to see the full usage pattern.
 func (r *SegmentReader) Err() error {
 	return r.err
 }
