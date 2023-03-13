@@ -10,7 +10,6 @@ import (
 	"github.com/fgrosse/zaptest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func TestNew(t *testing.T) {
@@ -131,29 +130,4 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 
 	err = wal.Close()
 	assert.NoError(t, err)
-}
-
-var exampleBenchmarkEntries [100]*ExampleEntry1
-
-func init() {
-	rand.Seed(time.Now().UnixMilli())
-	for i := range exampleBenchmarkEntries {
-		exampleBenchmarkEntries[i] = &ExampleEntry1{
-			ID:    uint32(i + 1),
-			Point: []float32{rand.Float32() * 10, rand.Float32() * 10},
-		}
-	}
-}
-
-func BenchmarkWAL_Write(b *testing.B) {
-	path := b.TempDir()
-	conf := DefaultConfiguration()
-	wal, err := New(path, conf, ExampleEntries, zap.NewNop())
-	require.NoError(b, err)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		e := exampleBenchmarkEntries[i%len(exampleBenchmarkEntries)]
-		_, _ = wal.Write(e)
-	}
 }
