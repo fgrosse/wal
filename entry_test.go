@@ -5,6 +5,10 @@ import (
 	"encoding/binary"
 	"io"
 	"math"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ExampleEntry is an Entry implementation that is used in unit tests.
@@ -13,11 +17,25 @@ type ExampleEntry struct {
 	Point []float32
 }
 
-// ExampleEntryType is the EntryType that is returned by an ExampleEntry.
-const ExampleEntryType = EntryType(1)
+// ExampleEntry2 is another Entry implementation that is used in unit tests.
+// This type is used to demonstrate that the WAL is able to distinguish between
+// multiple entry types that contain different data.
+type ExampleEntry2 struct {
+	Test bool
+	Name string // max 65535 characters
+}
 
+// Constants for the example Entry implementations.
+const (
+	ExampleEntryType EntryType = iota
+	ExampleEntry2Type
+)
+
+// ExampleEntries is the EntryRegistry that contains all known example Entry
+// implementations.
 var ExampleEntries = NewEntryRegistry(
 	NewExampleEntry,
+	NewExampleEntry2,
 )
 
 func NewExampleEntry() Entry {
@@ -88,4 +106,112 @@ func (e *ExampleEntry) DecodePayload(b []byte) error {
 	}
 
 	return err
+}
+
+func NewExampleEntry2() Entry {
+	return new(ExampleEntry2)
+}
+
+func (*ExampleEntry2) Type() EntryType {
+	return ExampleEntry2Type
+}
+
+func (e *ExampleEntry2) EncodePayload(b []byte) []byte {
+	nameLen := uint16(len(e.Name))
+	if len(e.Name) > math.MaxUint16 {
+		// If the string is too long, cut it off. In the real world we would
+		// handle this case via a setter that validates this constraint.
+		nameLen = math.MaxUint16
+	}
+
+	// 1 byte: e.Test
+	// 2 byte: nameLen
+	// n byte: name bytes
+	totalLen := 1 + 2 + int(nameLen)
+	if len(b) < totalLen {
+		b = append(b, make([]byte, totalLen-len(b))...)
+	}
+
+	if e.Test {
+		b[0] = 1
+	} else {
+		b[0] = 0
+	}
+
+	binary.BigEndian.PutUint16(b[1:3], nameLen) // 2 byte
+	copy(b[3:], e.Name)
+
+	return b
+}
+
+func (*ExampleEntry2) ReadPayload(r io.Reader) ([]byte, error) {
+	buffer := make([]byte, 3) // 1B e.Test + 2B len(b.Name)
+	n, err := io.ReadFull(r, buffer)
+	if err == io.EOF || n != len(buffer) {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	nameLen := binary.BigEndian.Uint16(buffer[1:3])
+	name := make([]byte, nameLen)
+	n, err = io.ReadFull(r, name)
+	if err == io.EOF || n != len(name) {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	return append(buffer, name...), nil
+}
+
+func (e *ExampleEntry2) DecodePayload(b []byte) error {
+	if b[0] == 1 {
+		e.Test = true
+	} else {
+		e.Test = false
+	}
+
+	e.Name = string(b[3:])
+	return nil
+}
+
+func TestExampleEntry(t *testing.T) {
+	original := &ExampleEntry{
+		ID:    5546132,
+		Point: []float32{1, 2, 3, 4, 5},
+	}
+
+	var encoded []byte
+	encoded = original.EncodePayload(encoded)
+	r := bytes.NewBuffer(encoded)
+
+	decoded := NewExampleEntry()
+	input, err := decoded.ReadPayload(r)
+	require.NoError(t, err)
+
+	err = decoded.DecodePayload(input)
+	require.NoError(t, err)
+
+	assert.Equal(t, original, decoded)
+}
+
+func TestExampleEntry2(t *testing.T) {
+	original := &ExampleEntry2{
+		Test: true,
+		Name: "Ada Lovelace",
+	}
+
+	var encoded []byte
+	encoded = original.EncodePayload(encoded)
+	r := bytes.NewBuffer(encoded)
+
+	decoded := NewExampleEntry2()
+	input, err := decoded.ReadPayload(r)
+	require.NoError(t, err)
+
+	err = decoded.DecodePayload(input)
+	require.NoError(t, err)
+
+	assert.Equal(t, original, decoded)
 }
