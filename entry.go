@@ -1,8 +1,6 @@
 package wal
 
-import (
-	"io"
-)
+import "io"
 
 // Entry is a single record of the Write Ahead Log.
 type Entry interface {
