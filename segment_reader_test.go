@@ -42,7 +42,7 @@ func TestSegmentReader(t *testing.T) {
 
 	require.NoError(t, w.Sync())
 	input := bytes.NewReader(buf.Bytes())
-	r, err := NewSegmentReader(input, ExampleTypes)
+	r, err := NewSegmentReader(input, ExampleEntries)
 	require.NoError(t, err)
 
 	for i, expected := range entries {

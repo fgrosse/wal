@@ -13,12 +13,16 @@ type ExampleEntry struct {
 	Point []float32
 }
 
-var ExampleTypes = []NewEntryFunc{
-	func() Entry { return new(ExampleEntry) },
-}
-
 // ExampleEntryType is the EntryType that is returned by an ExampleEntry.
 const ExampleEntryType = EntryType(1)
+
+var ExampleEntries = NewEntryRegistry(
+	NewExampleEntry,
+)
+
+func NewExampleEntry() Entry {
+	return new(ExampleEntry)
+}
 
 func (*ExampleEntry) Type() EntryType {
 	return ExampleEntryType

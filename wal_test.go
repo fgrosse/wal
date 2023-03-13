@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 	t.Run("without existing dir", func(t *testing.T) {
 		path := t.TempDir()
 		conf := DefaultConfiguration()
-		wal, err := New(path, conf, ExampleTypes, zaptest.Logger(t))
+		wal, err := New(path, conf, ExampleEntries, zaptest.Logger(t))
 		require.NoError(t, err)
 		require.NotNil(t, wal)
 
@@ -33,7 +33,7 @@ func TestWAL(t *testing.T) {
 	conf.SyncDelay = time.Millisecond // allow test inserts to be written together which cleans up the test logs a little
 	logger := zaptest.Logger(t)
 
-	wal, err := New(path, conf, ExampleTypes, logger)
+	wal, err := New(path, conf, ExampleEntries, logger)
 	require.NoError(t, err)
 
 	t.Log("Inserting first couple of entries")
@@ -55,7 +55,7 @@ func TestWAL(t *testing.T) {
 	t.Log("Closing WAL properly and then re-open it again.")
 	require.NoError(t, wal.Close())
 
-	wal, err = New(path, conf, ExampleTypes, logger)
+	wal, err = New(path, conf, ExampleEntries, logger)
 	require.NoError(t, err)
 
 	t.Log("Inserting another few entries")
@@ -80,7 +80,7 @@ func TestWAL(t *testing.T) {
 	lastSegment, err := os.OpenFile(segments[0], os.O_RDWR, 0666)
 	require.NoError(t, err)
 
-	r, err := NewSegmentReader(lastSegment, ExampleTypes)
+	r, err := NewSegmentReader(lastSegment, ExampleEntries)
 	require.NoError(t, err)
 
 	expectedEntries := append(inserts, inserts2...)
@@ -105,7 +105,7 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 	conf := DefaultConfiguration()
 	conf.SyncDelay = 10 * time.Millisecond
 
-	wal, err := New(path, conf, ExampleTypes, zaptest.Logger(t))
+	wal, err := New(path, conf, ExampleEntries, zaptest.Logger(t))
 	require.NoError(t, err)
 
 	n := 100
@@ -148,7 +148,7 @@ func init() {
 func BenchmarkWAL_Write(b *testing.B) {
 	path := b.TempDir()
 	conf := DefaultConfiguration()
-	wal, err := New(path, conf, ExampleTypes, zap.NewNop())
+	wal, err := New(path, conf, ExampleEntries, zap.NewNop())
 	require.NoError(b, err)
 
 	b.ResetTimer()

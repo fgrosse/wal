@@ -14,36 +14,26 @@ type SegmentReader struct {
 	offset   uint32
 	typ      EntryType
 	checksum uint32
+	entry    Entry
 	payload  []byte
 	err      error
-
-	loaders map[EntryType]NewEntryFunc
+	registry *EntryRegistry
 }
 
-type NewEntryFunc func() Entry
-
-func NewSegmentReader(r io.Reader, entryLoaders []NewEntryFunc) (*SegmentReader, error) {
-	if len(entryLoaders) == 0 {
-		return nil, fmt.Errorf("missing entry loaders")
-	}
-
-	loaders := make(map[EntryType]NewEntryFunc, len(entryLoaders))
-	for _, newEntry := range entryLoaders {
-		entry := newEntry()
-		typ := entry.Type()
-		if _, ok := loaders[typ]; ok {
-			return nil, fmt.Errorf("type %v was registered twice", typ)
-		}
-
-		loaders[typ] = newEntry
-	}
-
+func NewSegmentReader(r io.Reader, reg *EntryRegistry) (*SegmentReader, error) {
 	return &SegmentReader{
-		r:       bufio.NewReader(r),
-		loaders: loaders,
+		r:        bufio.NewReader(r),
+		registry: reg,
 	}, nil
 }
 
+// Next loads the data for the next Entry from the underlying reader.
+// For efficiency reasons, this function neither checks the entry checksum,
+// nor does it decode the entry bytes. This is done, so the caller can quickly
+// seek through a WAL up to a specific offset without having to decode each WAL
+// entry.
+//
+// In order to actually decode the read WAL entry, you need to use SegmentReader.Read(…).
 func (r *SegmentReader) Next() bool {
 	var header [9]byte // 4B offset + 1B type + 4B checksum
 	n, err := io.ReadFull(r.r, header[:])
@@ -65,39 +55,38 @@ func (r *SegmentReader) Next() bool {
 	r.typ = EntryType(header[4])
 	r.checksum = binary.BigEndian.Uint32(header[5:9])
 
-	newEntry, ok := r.loaders[r.typ]
-	if !ok {
-		r.err = fmt.Errorf("unknown WAL entry type %x", byte(r.typ))
+	r.entry, err = r.registry.New(r.typ)
+	if err != nil {
+		r.err = err
 		return false
 	}
 
-	entry := newEntry()
-	r.payload, r.err = entry.ReadPayload(r.r)
+	r.payload, r.err = r.entry.ReadPayload(r.r)
 	return true
 }
 
-// Read, decodes the next Entry and returns it together with its WAL offset.
+// Read decodes the next Entry and returns it together with its WAL offset.
 // Before any entry can be read, the caller must call SegmentReader.Next() first.
 //
 // The complete usage pattern looks like this:
 //
-//	r, err := NewSegmentReader(…)
-//  …
+//		r, err := NewSegmentReader(…)
+//	 …
 //
-//	for r.Next() {
-//	  e, offset, err := r.Read()
-//	  …
-//	}
+//		for r.Next() {
+//		  e, offset, err := r.Read()
+//		  …
+//		}
 //
-//	if err := r.Err(); err != nil {
-//	  …
-//	}
+//		if err := r.Err(); err != nil {
+//		  …
+//		}
 func (r *SegmentReader) Read() (entry Entry, offset uint32, err error) {
 	if r.err != nil {
 		return nil, 0, r.err
 	}
 
-	if r.payload == nil {
+	if r.entry == nil {
 		return nil, r.offset, errors.New("must call SegmentReader.Next() first")
 	}
 
@@ -105,11 +94,8 @@ func (r *SegmentReader) Read() (entry Entry, offset uint32, err error) {
 		return nil, r.offset, fmt.Errorf("detected WAL Entry corruption at WAL offset %d", r.offset)
 	}
 
-	newEntry := r.loaders[r.typ]
-	entry = newEntry()
-	err = entry.DecodePayload(r.payload)
-
-	return entry, r.offset, err
+	err = r.entry.DecodePayload(r.payload)
+	return r.entry, r.offset, err
 }
 
 // Err returns any error that happened when calling Next(). This function must

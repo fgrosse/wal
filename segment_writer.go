@@ -9,7 +9,7 @@ import (
 // The SegmentWriter is responsible for writing WAL entries to disk.
 // This type handles the necessary buffered I/O as well as file system syncing.
 //
-// Every Entry is written, using the following binary layout:
+// Every Entry is written, using the following binary layout (big endian format):
 //
 //	  ┌─────────────┬───────────┬──────────┬─────────┐
 //	  │ Offset (4B) │ Type (1B) │ CRC (4B) │ Payload │
@@ -83,8 +83,6 @@ func (w *SegmentWriter) Write(offset uint32, typ EntryType, checksum uint32, pay
 		return err
 	}
 
-	// TODO: should we compress the binary entry bytes? Influx uses snappy
-
 	if _, err = w.w.Write(payload); err != nil {
 		return err
 	}
@@ -105,8 +103,8 @@ func (w *SegmentWriter) Sync() error {
 	return w.sync()
 }
 
-// Close ensures that all buffered data is flushed to disk before then closing
-// the associated file.
+// Close ensures that all buffered data is flushed to disk before and then closes
+// the associated writer or file.
 func (w *SegmentWriter) Close() error {
 	if err := w.Sync(); err != nil {
 		return err
