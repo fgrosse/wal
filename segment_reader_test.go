@@ -32,7 +32,7 @@ func TestSegmentReader(t *testing.T) {
 		payload := make([]byte, 4+2+4*2)
 		e.EncodePayload(payload)
 		checksum := crc32.ChecksumIEEE(payload)
-		err := w.Write(offset, ExampleEntryType, checksum, payload)
+		err := w.Write(offset, ExampleEntry1Type, checksum, payload)
 		require.NoError(t, err)
 	}
 

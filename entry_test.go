@@ -18,33 +18,47 @@ type ExampleEntry1 struct {
 }
 
 // ExampleEntry2 is another Entry implementation that is used in unit tests.
-// This type is used to demonstrate that the WAL is able to distinguish between
-// multiple entry types that contain different data.
 type ExampleEntry2 struct {
 	Test bool
-	Name string // max 65535 characters
+	Name string
 }
 
 // Constants for the example Entry implementations.
 const (
-	ExampleEntryType EntryType = iota
+	ExampleEntry1Type EntryType = iota
 	ExampleEntry2Type
 )
 
 // ExampleEntries is the EntryRegistry that contains all known example Entry
 // implementations.
 var ExampleEntries = NewEntryRegistry(
-	NewExampleEntry1,
-	NewExampleEntry2,
+	func() Entry { return new(ExampleEntry1) },
+	func() Entry { return new(ExampleEntry2) },
 )
 
-func NewExampleEntry1() Entry {
-	return new(ExampleEntry1)
+func TestExampleEntry1(t *testing.T) {
+	original := &ExampleEntry1{
+		ID:    5546132,
+		Point: []float32{1, 2, 3, 4, 5},
+	}
+
+	assert.Equal(t, ExampleEntry1Type, original.Type())
+
+	var encoded []byte
+	encoded = original.EncodePayload(encoded)
+	r := bytes.NewBuffer(encoded)
+
+	decoded := new(ExampleEntry1)
+	input, err := decoded.ReadPayload(r)
+	require.NoError(t, err)
+
+	err = decoded.DecodePayload(input)
+	require.NoError(t, err)
+
+	assert.Equal(t, original, decoded)
 }
 
-func (*ExampleEntry1) Type() EntryType {
-	return ExampleEntryType
-}
+func (*ExampleEntry1) Type() EntryType { return ExampleEntry1Type }
 
 func (e *ExampleEntry1) EncodePayload(b []byte) []byte {
 	size := 4 + 2 + 4*len(e.Point)
@@ -108,13 +122,27 @@ func (e *ExampleEntry1) DecodePayload(b []byte) error {
 	return err
 }
 
-func NewExampleEntry2() Entry {
-	return new(ExampleEntry2)
+func TestExampleEntry2(t *testing.T) {
+	original := &ExampleEntry2{
+		Test: true,
+		Name: "Ada Lovelace",
+	}
+
+	var encoded []byte
+	encoded = original.EncodePayload(encoded)
+	r := bytes.NewBuffer(encoded)
+
+	decoded := new(ExampleEntry2)
+	input, err := decoded.ReadPayload(r)
+	require.NoError(t, err)
+
+	err = decoded.DecodePayload(input)
+	require.NoError(t, err)
+
+	assert.Equal(t, original, decoded)
 }
 
-func (*ExampleEntry2) Type() EntryType {
-	return ExampleEntry2Type
-}
+func (*ExampleEntry2) Type() EntryType { return ExampleEntry2Type }
 
 func (e *ExampleEntry2) EncodePayload(b []byte) []byte {
 	nameLen := uint16(len(e.Name))
@@ -174,44 +202,4 @@ func (e *ExampleEntry2) DecodePayload(b []byte) error {
 
 	e.Name = string(b[3:])
 	return nil
-}
-
-func TestExampleEntry1(t *testing.T) {
-	original := &ExampleEntry1{
-		ID:    5546132,
-		Point: []float32{1, 2, 3, 4, 5},
-	}
-
-	var encoded []byte
-	encoded = original.EncodePayload(encoded)
-	r := bytes.NewBuffer(encoded)
-
-	decoded := NewExampleEntry1()
-	input, err := decoded.ReadPayload(r)
-	require.NoError(t, err)
-
-	err = decoded.DecodePayload(input)
-	require.NoError(t, err)
-
-	assert.Equal(t, original, decoded)
-}
-
-func TestExampleEntry2(t *testing.T) {
-	original := &ExampleEntry2{
-		Test: true,
-		Name: "Ada Lovelace",
-	}
-
-	var encoded []byte
-	encoded = original.EncodePayload(encoded)
-	r := bytes.NewBuffer(encoded)
-
-	decoded := NewExampleEntry2()
-	input, err := decoded.ReadPayload(r)
-	require.NoError(t, err)
-
-	err = decoded.DecodePayload(input)
-	require.NoError(t, err)
-
-	assert.Equal(t, original, decoded)
 }
