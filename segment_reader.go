@@ -70,17 +70,17 @@ func (r *SegmentReader) Next() bool {
 //
 // The complete usage pattern looks like this:
 //
-//		r, err := NewSegmentReader(…)
-//	 …
+//	r, err := NewSegmentReader(…)
+//	…
 //
-//		for r.Next() {
-//		  e, offset, err := r.Read()
-//		  …
-//		}
+//	for r.Next() {
+//	  e, offset, err := r.Read()
+//	  …
+//	}
 //
-//		if err := r.Err(); err != nil {
-//		  …
-//		}
+//	if err := r.Err(); err != nil {
+//	  …
+//	}
 func (r *SegmentReader) Read() (entry Entry, offset uint32, err error) {
 	if r.err != nil {
 		return nil, 0, r.err
