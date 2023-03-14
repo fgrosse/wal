@@ -140,12 +140,11 @@ func (w *WAL) readSegment(f *os.File, registry *EntryRegistry) (lastOffset uint3
 		return 0, fmt.Errorf("failed to create WAL segment reader: %w", err)
 	}
 
-	for r.Next() {
-		_, offset, err := r.Read()
-		if err != nil {
-			return 0, fmt.Errorf("failed to read WAL entry: %w", err)
+	for {
+		offset, ok := r.Next()
+		if !ok {
+			break
 		}
-
 		lastOffset = offset
 	}
 

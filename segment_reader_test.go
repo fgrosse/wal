@@ -48,14 +48,15 @@ func TestSegmentReader(t *testing.T) {
 	require.NoError(t, err)
 
 	for i, expected := range entries {
-		if !assert.True(t, r.Next()) {
+		offset, ok := r.Next()
+		if !assert.True(t, ok) {
 			break
 		}
 
-		entry, offset, err := r.Read()
-		require.NoError(t, err)
-
 		assert.Equal(t, uint32(i)+1, offset)
+
+		entry, err := r.Read()
+		require.NoError(t, err)
 		assert.Equal(t, expected, entry)
 	}
 

@@ -87,12 +87,17 @@ func TestWAL(t *testing.T) {
 	expectedEntries := append(inserts, inserts2...)
 
 	var i int
-	for r.Next() {
-		i++
+	for {
+		offset, ok := r.Next()
+		if !ok {
+			break
+		}
 
-		entry, offset, err := r.Read()
-		require.NoError(t, err)
+		i++
 		assert.EqualValues(t, i, offset)
+
+		entry, err := r.Read()
+		require.NoError(t, err)
 
 		t.Logf("Read WAL entry from disk %+v", entry)
 		assert.Equal(t, expectedEntries[i-1], entry)

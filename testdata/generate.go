@@ -83,8 +83,13 @@ func validateSegment(path string, expectedLastOffset int) error {
 	}
 
 	var lastOffset uint32
-	for r.Next() {
-		_, offset, err := r.Read()
+	for {
+		offset, ok := r.Next()
+		if !ok {
+			break
+		}
+
+		_, err = r.Read()
 		if err != nil {
 			return err
 		}
