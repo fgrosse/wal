@@ -52,28 +52,38 @@ func NewSegmentReader(r io.Reader, registry *EntryRegistry) (*SegmentReader, err
 	}, nil
 }
 
+// SeekEnd reads through the entire segment until the end and returns the last offset.
+func (r *SegmentReader) SeekEnd() (lastOffset uint32, err error) {
+	for r.Next() {
+		lastOffset = r.Offset()
+	}
+
+	return lastOffset, r.Err()
+}
+
 // Next loads the data for the next Entry from the underlying reader.
 // For efficiency reasons, this function neither checks the entry checksum,
 // nor does it decode the entry bytes. This is done, so the caller can quickly
 // seek through a WAL up to a specific offset without having to decode each WAL
 // entry.
 //
+// You can get the offset of the read entry using SegmentReader.Offset().
 // In order to actually decode the read WAL entry, you need to use SegmentReader.Read(…).
-func (r *SegmentReader) Next() (offset uint32, ok bool) {
+func (r *SegmentReader) Next() bool {
 	var header [9]byte // 4B offset + 1B type + 4B checksum
 	n, err := io.ReadFull(r.r, header[:])
 	if err == io.EOF {
-		return 0, false
+		return false
 	}
 
 	if err != nil {
 		r.err = err
-		return 0, false
+		return false
 	}
 
 	if n != 9 {
 		r.err = io.ErrUnexpectedEOF
-		return 0, false
+		return false
 	}
 
 	r.offset = binary.BigEndian.Uint32(header[:4])
@@ -83,11 +93,16 @@ func (r *SegmentReader) Next() (offset uint32, ok bool) {
 	r.entry, err = r.registry.New(r.typ)
 	if err != nil {
 		r.err = err
-		return 0, false
+		return false
 	}
 
 	r.payload, r.err = r.entry.ReadPayload(r.r)
-	return r.offset, true
+	return true
+}
+
+// Offset returns the offset of the last read entry.
+func (r *SegmentReader) Offset() uint32 {
+	return r.offset
 }
 
 // Read decodes the next Entry and returns it together with its WAL offset.

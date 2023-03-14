@@ -140,15 +140,7 @@ func (w *WAL) readSegment(f *os.File, registry *EntryRegistry) (lastOffset uint3
 		return 0, fmt.Errorf("failed to create WAL segment reader: %w", err)
 	}
 
-	for {
-		offset, ok := r.Next()
-		if !ok {
-			break
-		}
-		lastOffset = offset
-	}
-
-	return lastOffset, r.Err()
+	return r.SeekEnd()
 }
 
 func (w *WAL) Write(e Entry) (offset uint32, err error) {

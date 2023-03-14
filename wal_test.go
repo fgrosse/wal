@@ -87,14 +87,9 @@ func TestWAL(t *testing.T) {
 	expectedEntries := append(inserts, inserts2...)
 
 	var i int
-	for {
-		offset, ok := r.Next()
-		if !ok {
-			break
-		}
-
+	for r.Next() {
 		i++
-		assert.EqualValues(t, i, offset)
+		assert.EqualValues(t, i, r.Offset())
 
 		entry, err := r.Read()
 		require.NoError(t, err)

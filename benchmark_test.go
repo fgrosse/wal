@@ -48,11 +48,7 @@ func BenchmarkSegmentReader(b *testing.B) {
 		require.NoError(b, err)
 
 		// var lastOffset uint32
-		for {
-			_, ok := r.Next()
-			if !ok {
-				break
-			}
+		for r.Next() {
 			// lastOffset = offset
 		}
 
