@@ -183,8 +183,7 @@ $ go get github.com/fgrosse/wal
 
 ## Built With
 
-* [go.uber.org/zap](go.uber.org/zap) - Blazing fast, structured, leveled logging in Go
-* [go.uber.org/atomic](go.uber.org/atomic) - Simple wrappers for primitive types to enforce atomic access.
+* [zap](go.uber.org/zap) - Blazing fast, structured, leveled logging in Go
 * [testify](https://github.com/stretchr/testify) - A simple unit test library
 * _[and more](go.mod)_
 

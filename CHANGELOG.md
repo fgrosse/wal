@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce `EntryRegistry` to improve code readability (fgrosse/wal#3)
 - Introduce `github.com/fgrosse/wal/waltest` package (fgrosse/wal#5)
 - Refactor `SegmentReader` API for better performance and readability (fgrosse/wal#5)
+- Drop direct dependency on `go.uber.org/atomic`
 
 ## [v0.1.0] - 2023-03-12
 - Initial release
