@@ -75,7 +75,7 @@ func (w *WAL) load(path string, registry *EntryRegistry, logger *zap.Logger) err
 
 	logger.Debug("Checking for existing WAL segment files")
 
-	segments, err := segmentFileNames(path)
+	segments, err := SegmentFileNames(path)
 	if err != nil {
 		return fmt.Errorf("checking existing segment files: %w", err)
 	}
@@ -108,8 +108,9 @@ func (w *WAL) load(path string, registry *EntryRegistry, logger *zap.Logger) err
 	return nil
 }
 
-// segmentFileNames will return all files that are WAL segment files in sorted order by ascending ID.
-func segmentFileNames(dir string) ([]string, error) {
+// SegmentFileNames will return all files that are WAL segment files in sorted
+// order by ascending ID.
+func SegmentFileNames(dir string) ([]string, error) {
 	names, err := filepath.Glob(filepath.Join(dir, "*.wal"))
 	if err != nil {
 		return nil, err

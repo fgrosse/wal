@@ -1,4 +1,4 @@
-package wal
+package wal_test
 
 import (
 	"math/rand"
@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fgrosse/wal"
+	"github.com/fgrosse/wal/waltest"
 	"github.com/fgrosse/zaptest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,8 +17,8 @@ import (
 func TestNew(t *testing.T) {
 	t.Run("without existing dir", func(t *testing.T) {
 		path := t.TempDir()
-		conf := DefaultConfiguration()
-		wal, err := New(path, conf, ExampleEntries, zaptest.Logger(t))
+		conf := wal.DefaultConfiguration()
+		wal, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
 		require.NoError(t, err)
 		require.NotNil(t, wal)
 
@@ -28,15 +30,15 @@ func TestNew(t *testing.T) {
 
 func TestWAL(t *testing.T) {
 	path := t.TempDir()
-	conf := DefaultConfiguration()
+	conf := wal.DefaultConfiguration()
 	conf.SyncDelay = time.Millisecond // allow test inserts to be written together which cleans up the test logs a little
 	logger := zaptest.Logger(t)
 
-	wal, err := New(path, conf, ExampleEntries, logger)
+	w, err := wal.New(path, conf, waltest.ExampleEntries, logger)
 	require.NoError(t, err)
 
 	t.Log("Inserting first couple of entries")
-	inserts := []*ExampleEntry1{
+	inserts := []*waltest.ExampleEntry1{
 		{ID: 1, Point: []float32{1, 2}},
 		{ID: 2, Point: []float32{3, 4}},
 		{ID: 3, Point: []float32{5, 6}},
@@ -44,7 +46,7 @@ func TestWAL(t *testing.T) {
 
 	var lastSeq uint32
 	for _, x := range inserts {
-		seq, err := wal.Write(x)
+		seq, err := w.Write(x)
 		require.NoError(t, err)
 
 		assert.Greater(t, seq, lastSeq)
@@ -52,34 +54,34 @@ func TestWAL(t *testing.T) {
 	}
 
 	t.Log("Closing WAL properly and then re-open it again.")
-	require.NoError(t, wal.Close())
+	require.NoError(t, w.Close())
 
-	wal, err = New(path, conf, ExampleEntries, logger)
+	w, err = wal.New(path, conf, waltest.ExampleEntries, logger)
 	require.NoError(t, err)
 
 	t.Log("Inserting another few entries")
-	inserts2 := []*ExampleEntry1{
+	inserts2 := []*waltest.ExampleEntry1{
 		{ID: 4, Point: []float32{7, 8}},
 		{ID: 5, Point: []float32{9, 0}},
 	}
 
 	for _, x := range inserts2 {
-		_, err := wal.Write(x)
+		_, err := w.Write(x)
 		require.NoError(t, err)
 	}
 
 	t.Log("Closing WAL another time")
-	require.NoError(t, wal.Close())
+	require.NoError(t, w.Close())
 
 	t.Log("Checking if all entries are persisted to disk correctly")
-	segments, err := segmentFileNames(path)
+	segments, err := wal.SegmentFileNames(path)
 	require.NoError(t, err)
 	require.Len(t, segments, 1)
 
 	lastSegment, err := os.OpenFile(segments[0], os.O_RDWR, 0666)
 	require.NoError(t, err)
 
-	r, err := NewSegmentReader(lastSegment, ExampleEntries)
+	r, err := wal.NewSegmentReader(lastSegment, waltest.ExampleEntries)
 	require.NoError(t, err)
 
 	expectedEntries := append(inserts, inserts2...)
@@ -101,16 +103,16 @@ func TestWAL(t *testing.T) {
 
 func TestWAL_Insert_Concurrent(t *testing.T) {
 	path := t.TempDir()
-	conf := DefaultConfiguration()
+	conf := wal.DefaultConfiguration()
 	conf.SyncDelay = 10 * time.Millisecond
 
-	wal, err := New(path, conf, ExampleEntries, zaptest.Logger(t))
+	w, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
 	require.NoError(t, err)
 
 	n := 100
-	inserts := make([]*ExampleEntry1, n)
+	inserts := make([]*waltest.ExampleEntry1, n)
 	for i := range inserts {
-		inserts[i] = &ExampleEntry1{
+		inserts[i] = &waltest.ExampleEntry1{
 			ID:    uint32(i + 1),
 			Point: []float32{rand.Float32() * 10, rand.Float32() * 10},
 		}
@@ -119,8 +121,8 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	for _, x := range inserts {
 		wg.Add(1)
-		go func(e *ExampleEntry1) {
-			_, err := wal.Write(e)
+		go func(e *waltest.ExampleEntry1) {
+			_, err := w.Write(e)
 			assert.NoError(t, err)
 			wg.Done()
 		}(x)
@@ -128,6 +130,6 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 
 	wg.Wait()
 
-	err = wal.Close()
+	err = w.Close()
 	assert.NoError(t, err)
 }
