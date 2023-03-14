@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"time"
 
 	"github.com/fgrosse/wal"
 	"github.com/fgrosse/wal/waltest"
@@ -17,7 +16,7 @@ func main() {
 	path := "testdata/segment.wal"
 	log.SetFlags(0)
 	log.SetPrefix("> ")
-	seed := time.Now().UnixMilli()
+	seed := int64(42) // fixed seed to make the produced file deterministic
 	entries := randomEntries(n, seed)
 
 	log.Printf("Writing example segment file to %s", path)
