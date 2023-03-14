@@ -1,10 +1,8 @@
 package wal_test
 
 import (
-	"hash/crc32"
 	"math/rand"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -14,11 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	exampleBenchmarkEntries [1000]*waltest.ExampleEntry1
-	initExampleSegmentFile  = new(sync.Once)
-	exampleSegmentFileName  string
-)
+var exampleBenchmarkEntries [1000]*waltest.ExampleEntry1
 
 func init() {
 	seed := time.Now().UnixMilli()
@@ -45,31 +39,10 @@ func BenchmarkWAL_Write(b *testing.B) {
 }
 
 func BenchmarkSegmentReader(b *testing.B) {
-	initExampleSegmentFile.Do(func() {
-		f, err := os.CreateTemp(b.TempDir(), "*.wal")
-		require.NoError(b, err)
-
-		w := wal.NewSegmentWriter(f)
-		write := func(offset uint32, e wal.Entry) {
-			payload := make([]byte, 4+2+4*2)
-			e.EncodePayload(payload)
-			checksum := crc32.ChecksumIEEE(payload)
-			err := w.Write(offset, waltest.ExampleEntry1Type, checksum, payload)
-			require.NoError(b, err)
-		}
-
-		for i, e := range exampleBenchmarkEntries {
-			write(uint32(i+1), e)
-		}
-
-		require.NoError(b, w.Close())
-		exampleSegmentFileName = f.Name()
-	})
-
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		f, err := os.Open(exampleSegmentFileName)
+		f, err := os.Open("testdata/segment.wal")
 		require.NoError(b, err)
+		b.Cleanup(func() { _ = f.Close() })
 
 		r, err := wal.NewSegmentReader(f, waltest.ExampleEntries)
 		require.NoError(b, err)
