@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/fgrosse/wal"
+	"github.com/fgrosse/wal/waltest"
 	"go.uber.org/zap"
 )
 
@@ -16,11 +17,11 @@ import (
 //
 // In the example below we use two example implementations which are only
 // available in unit tests. You might want to look into their implementation
-// (see entry_test.go) to understand how you can efficiently implement your
-// own encoding and decoding logic.
+// (see github.com/fgrosse/wal/waltest) to understand how you can efficiently
+// implement your own encoding and decoding logic.
 var walEntries = wal.NewEntryRegistry(
-	func() wal.Entry { return new(wal.ExampleEntry1) },
-	func() wal.Entry { return new(wal.ExampleEntry2) },
+	func() wal.Entry { return new(waltest.ExampleEntry1) },
+	func() wal.Entry { return new(waltest.ExampleEntry2) },
 )
 
 func Example() {
@@ -54,7 +55,7 @@ func Example() {
 
 	// Now you can finally write your first WAL entry. When this function
 	// returns without an error you can be sure that it was fully written to disk.
-	offset, err := w.Write(&wal.ExampleEntry1{
+	offset, err := w.Write(&waltest.ExampleEntry1{
 		ID:    42,
 		Point: []float32{1, 2, 3},
 	})

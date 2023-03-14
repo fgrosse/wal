@@ -1,16 +1,18 @@
-package wal
+package wal_test
 
 import (
 	"bytes"
 	"hash/crc32"
 	"testing"
 
+	"github.com/fgrosse/wal"
+	"github.com/fgrosse/wal/waltest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSegmentReader(t *testing.T) {
-	entries := []*ExampleEntry1{
+	entries := []*waltest.ExampleEntry1{
 		{
 			ID:    42,
 			Point: []float32{1, 2},
@@ -25,14 +27,14 @@ func TestSegmentReader(t *testing.T) {
 		},
 	}
 
-	buf := NewTestWriter()
-	w := NewSegmentWriter(buf)
+	buf := wal.NewTestWriter()
+	w := wal.NewSegmentWriter(buf)
 
-	write := func(offset uint32, e Entry) {
+	write := func(offset uint32, e wal.Entry) {
 		payload := make([]byte, 4+2+4*2)
 		e.EncodePayload(payload)
 		checksum := crc32.ChecksumIEEE(payload)
-		err := w.Write(offset, ExampleEntry1Type, checksum, payload)
+		err := w.Write(offset, waltest.ExampleEntry1Type, checksum, payload)
 		require.NoError(t, err)
 	}
 
@@ -42,18 +44,19 @@ func TestSegmentReader(t *testing.T) {
 
 	require.NoError(t, w.Sync())
 	input := bytes.NewReader(buf.Bytes())
-	r, err := NewSegmentReader(input, ExampleEntries)
+	r, err := wal.NewSegmentReader(input, waltest.ExampleEntries)
 	require.NoError(t, err)
 
 	for i, expected := range entries {
-		if !assert.True(t, r.Next()) {
+		ok := r.ReadNext()
+		if !assert.True(t, ok) {
 			break
 		}
 
-		entry, offset, err := r.Read()
-		require.NoError(t, err)
+		assert.Equal(t, uint32(i)+1, r.Offset())
 
-		assert.Equal(t, uint32(i)+1, offset)
+		entry, err := r.Decode()
+		require.NoError(t, err)
 		assert.Equal(t, expected, entry)
 	}
 

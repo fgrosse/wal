@@ -1,14 +1,12 @@
-package wal
+package waltest
 
 import (
 	"bytes"
 	"encoding/binary"
 	"io"
 	"math"
-	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/fgrosse/wal"
 )
 
 // ExampleEntry1 is an Entry implementation that is used in unit tests.
@@ -25,40 +23,18 @@ type ExampleEntry2 struct {
 
 // Constants for the example Entry implementations.
 const (
-	ExampleEntry1Type EntryType = iota
+	ExampleEntry1Type wal.EntryType = iota
 	ExampleEntry2Type
 )
 
 // ExampleEntries is the EntryRegistry that contains all known example Entry
 // implementations.
-var ExampleEntries = NewEntryRegistry(
-	func() Entry { return new(ExampleEntry1) },
-	func() Entry { return new(ExampleEntry2) },
+var ExampleEntries = wal.NewEntryRegistry(
+	func() wal.Entry { return new(ExampleEntry1) },
+	func() wal.Entry { return new(ExampleEntry2) },
 )
 
-func TestExampleEntry1(t *testing.T) {
-	original := &ExampleEntry1{
-		ID:    5546132,
-		Point: []float32{1, 2, 3, 4, 5},
-	}
-
-	assert.Equal(t, ExampleEntry1Type, original.Type())
-
-	var encoded []byte
-	encoded = original.EncodePayload(encoded)
-	r := bytes.NewBuffer(encoded)
-
-	decoded := new(ExampleEntry1)
-	input, err := decoded.ReadPayload(r)
-	require.NoError(t, err)
-
-	err = decoded.DecodePayload(input)
-	require.NoError(t, err)
-
-	assert.Equal(t, original, decoded)
-}
-
-func (*ExampleEntry1) Type() EntryType { return ExampleEntry1Type }
+func (*ExampleEntry1) Type() wal.EntryType { return ExampleEntry1Type }
 
 func (e *ExampleEntry1) EncodePayload(b []byte) []byte {
 	size := 4 + 2 + 4*len(e.Point)
@@ -122,27 +98,7 @@ func (e *ExampleEntry1) DecodePayload(b []byte) error {
 	return err
 }
 
-func TestExampleEntry2(t *testing.T) {
-	original := &ExampleEntry2{
-		Test: true,
-		Name: "Ada Lovelace",
-	}
-
-	var encoded []byte
-	encoded = original.EncodePayload(encoded)
-	r := bytes.NewBuffer(encoded)
-
-	decoded := new(ExampleEntry2)
-	input, err := decoded.ReadPayload(r)
-	require.NoError(t, err)
-
-	err = decoded.DecodePayload(input)
-	require.NoError(t, err)
-
-	assert.Equal(t, original, decoded)
-}
-
-func (*ExampleEntry2) Type() EntryType { return ExampleEntry2Type }
+func (*ExampleEntry2) Type() wal.EntryType { return ExampleEntry2Type }
 
 func (e *ExampleEntry2) EncodePayload(b []byte) []byte {
 	nameLen := uint16(len(e.Name))

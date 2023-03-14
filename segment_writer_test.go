@@ -16,7 +16,7 @@ func TestSegmentWriter_Write(t *testing.T) {
 	sw := NewSegmentWriter(w)
 
 	offset := uint32(1234)
-	typ := ExampleEntry1Type
+	typ := EntryType(0)
 	payload := []byte{1, 2, 3, 4, 5}
 	checksum := uint32(0x470b99f4)
 
@@ -46,11 +46,11 @@ func TestSegmentWriter_Write_Size(t *testing.T) {
 
 	assert.Equal(t, 0, sw.size)
 
-	err := sw.Write(42, ExampleEntry1Type, uint32(0x470b99f4), []byte{1, 2, 3, 4, 5})
+	err := sw.Write(42, EntryType(0), uint32(0x470b99f4), []byte{1, 2, 3, 4, 5})
 	require.NoError(t, err)
 	assert.Equal(t, 4+1+4+5, sw.size) // Offset + Type + CRC + Payload
 
-	err = sw.Write(43, ExampleEntry1Type, uint32(0x470b99f4), []byte{'a', 'b', 'c'})
+	err = sw.Write(43, EntryType(0), uint32(0x470b99f4), []byte{'a', 'b', 'c'})
 	require.NoError(t, err)
 	assert.Equal(t, 14+4+1+4+3, sw.size) // Previous entry + Offset + Type + CRC + Payload
 }
@@ -67,7 +67,7 @@ func TestNewSegmentWriter_Close(t *testing.T) {
 
 	entry := []byte{1, 2, 3, 4, 5}
 	checksum := uint32(0x470b99f4)
-	err := sw.Write(1, ExampleEntry1Type, checksum, entry)
+	err := sw.Write(1, EntryType(0), checksum, entry)
 	require.NoError(t, err)
 
 	// CLosing the segment writer should automatically also flush it
