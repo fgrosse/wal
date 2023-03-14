@@ -38,7 +38,7 @@ func BenchmarkWAL_Write(b *testing.B) {
 	}
 }
 
-func BenchmarkSegmentReader(b *testing.B) {
+func BenchmarkSegmentReader_SeekEnd(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		f, err := os.Open("testdata/segment.wal")
 		require.NoError(b, err)
@@ -47,11 +47,7 @@ func BenchmarkSegmentReader(b *testing.B) {
 		r, err := wal.NewSegmentReader(f, waltest.ExampleEntries)
 		require.NoError(b, err)
 
-		// var lastOffset uint32
-		for r.ReadNext() {
-			// lastOffset = offset
-		}
-
-		require.NoError(b, r.Err())
+		_, err = r.SeekEnd()
+		require.NoError(b, err)
 	}
 }
