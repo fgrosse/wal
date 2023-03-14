@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +27,7 @@ type WAL struct {
 	segmentID  int    // ID of the current WAL segment, used to create segment file names
 	segment    *SegmentWriter
 
-	syncScheduled *atomic.Bool
+	syncScheduled atomic.Bool
 	syncWaiters   []chan<- error // goroutines waiting for the next fsync
 	closing       chan struct{}  // channel to signal that the WAL was closed (by closing the channel)
 }
@@ -45,11 +45,10 @@ func New(path string, conf Configuration, registry *EntryRegistry, logger *zap.L
 	}
 
 	wal := &WAL{
-		logger:        logger,
-		conf:          conf,
-		path:          path,
-		syncScheduled: atomic.NewBool(false),
-		closing:       make(chan struct{}),
+		logger:  logger,
+		conf:    conf,
+		path:    path,
+		closing: make(chan struct{}),
 		buffers: sync.Pool{
 			New: func() interface{} {
 				if conf.EntryPayloadSize > 0 {
