@@ -51,12 +51,16 @@ func New(path string, conf Configuration, registry *EntryRegistry, logger *zap.L
 		closing: make(chan struct{}),
 		buffers: sync.Pool{
 			New: func() interface{} {
-				if conf.EntryPayloadSize > 0 {
-					return make([]byte, conf.EntryPayloadSize) // TODO: remove this in favor of learning a value automatically
-				}
+				// The Pool's New function should generally only return pointer
+				// types, since a pointer can be put into the return interface
+				// value without an allocation.
 
 				var b []byte
-				return b
+				if conf.EntryPayloadSize > 0 {
+					b = make([]byte, conf.EntryPayloadSize) // TODO: remove this in favor of learning a value automatically
+				}
+
+				return &b
 			},
 		},
 	}
@@ -149,7 +153,9 @@ func (w *WAL) Write(e Entry) (offset uint32, err error) {
 
 	// Serialize the new WAL entry first into a buffer and then flush it with a
 	// single write operation to disk.
-	entryPayload := e.EncodePayload(w.buffers.Get().([]byte))
+	payloadBufferPtr := w.buffers.Get().(*[]byte)
+	payloadBuffer := *payloadBufferPtr
+	entryPayload := e.EncodePayload(payloadBuffer)
 
 	// Calculate checksum of the payload to enable detecting WAL entry corruption.
 	entryChecksum := crc32.ChecksumIEEE(entryPayload)
@@ -166,7 +172,14 @@ func (w *WAL) Write(e Entry) (offset uint32, err error) {
 	// First, put back the buffer. We don't have to clean it because it is
 	// completely overwritten, the next time it is used.
 	// TODO: we actually may have to clean it if we support different entry sizes?
-	w.buffers.Put(entryPayload)
+
+	// You might be tempted to simplify this by just passing &payloadBufferPtr
+	// to Put, but that would make the local copy of the payloadBuffer slice
+	// header escape to the heap, causing an allocation. Instead, we keep around
+	// the pointer to the slice header returned by Get, which is already on the
+	// heap, and overwrite and return that.
+	*payloadBufferPtr = payloadBuffer
+	w.buffers.Put(payloadBufferPtr)
 
 	// Now check the error from writing. We can return immediately if it failed.
 	if err != nil {
