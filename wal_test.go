@@ -133,3 +133,12 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 	err = w.Close()
 	assert.NoError(t, err)
 }
+
+func TestWAL_Offset(t *testing.T) {
+	path := t.TempDir()
+	conf := wal.DefaultConfiguration()
+	wal, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
+	require.NoError(t, err)
+
+	assert.EqualValues(t, 0, wal.Offset())
+}

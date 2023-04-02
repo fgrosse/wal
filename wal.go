@@ -23,9 +23,9 @@ type WAL struct {
 	path    string    // filesystem path to the WAL directory
 
 	mu         sync.Mutex
-	lastOffset uint32 // the last offset that has been written or zero if no writes occurred yet
-	segmentID  int    // ID of the current WAL segment, used to create segment file names
-	segment    *SegmentWriter
+	lastOffset uint32         // the last offset that has been written or zero if no writes occurred yet
+	segmentID  int            // ID of the current WAL segment, used to create segment file names
+	segment    *SegmentWriter // might be nil if we have never written anything to the WAL
 
 	syncScheduled atomic.Bool
 	syncWaiters   []chan<- error // goroutines waiting for the next fsync
@@ -258,6 +258,11 @@ func (w *WAL) newSegmentFile() error {
 // for a WAL sync.
 // The caller must ensure the WAL is write-locked before calling this function.
 func (w *WAL) sync() {
+	if w.segment == nil {
+		// There have been no writes so far so there is nothing to sync.
+		return
+	}
+
 	start := time.Now()
 	err := w.segment.Sync()
 	took := time.Since(start)
@@ -361,7 +366,7 @@ func (w *WAL) isClosed() bool {
 	}
 }
 
-// Offset returns the last offset that the WAL has written to disk
+// Offset returns the last offset that the WAL has written to disk.
 func (w *WAL) Offset() uint32 {
 	w.mu.Lock()
 	defer w.mu.Unlock()
