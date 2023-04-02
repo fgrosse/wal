@@ -1,0 +1,67 @@
+linters-settings:
+  depguard:
+    packages-with-error-message:
+      - github.com/go-playground/assert: 'unit tests assertions must only be made with testify'
+  govet:
+    check-shadowing: false
+  grouper:
+    import-require-single-import: true
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  misspell:
+    misspell:
+      locale: ~ # use a neutral variety of English (both UK and US are fine)
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+    disabled-checks:
+      - wrapperFunc
+      - octalLiteral
+
+linters:
+  disable-all: true # opt-on to linters instead of opt-out (makes updating golang-ci easier)
+  enable:
+    - asciicheck  # Simple linter to check that your code does not contain non-ASCII identifiers
+    - bidichk     # Checks for dangerous unicode character sequences
+    - depguard    # Go linter that checks if package imports are in a list of acceptable packages
+    - errcheck    # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
+    - gocritic    # Provides diagnostics that check for bugs, performance and style issues.
+    - gofmt       # Gofmt checks whether code was gofmt-ed. By default, this tool runs with -s option to check for code simplification
+    - gosec       # Inspects source code for security problems
+    - gosimple    # Linter for Go source code that specializes in simplifying a code
+    - govet       # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    - grouper     # An analyzer to analyze expression groups
+    - ineffassign # Detects when assignments to existing variables are not used
+    - misspell    # Finds commonly misspelled English words in comments
+    - revive      # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
+    - staticcheck # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
+    - typecheck   # Like the front-end of a Go compiler, parses and type-checks Go code
+    - unconvert   # Remove unnecessary type conversions
+    - unused      # Checks Go code for unused constants, variables, functions and types
+
+run:
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 10m
+  skip-dirs:
+    - '\..+' # skip directory starting with a dot
+    - testdata
+
+issues:
+  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
+  max-same-issues: 0
+
+  exclude-rules:
+
+    - path: .*_test.go
+      text: "(appendCombine|appendAssign): .*"
+      linters: [gocritic]
+
+    - path: .*_test.go
+      linters: [ gosec ]
