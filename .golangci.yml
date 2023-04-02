@@ -65,7 +65,3 @@ issues:
 
     - path: .*_test.go
       linters: [gosec]
-
-    - path: wal.go
-      text: "SA6002: argument should be pointer-like to avoid allocations" # TODO (review suggestion in follow up PR)
-      linters: [staticcheck]
