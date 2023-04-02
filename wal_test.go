@@ -18,9 +18,9 @@ func TestNew(t *testing.T) {
 	t.Run("without existing dir", func(t *testing.T) {
 		path := t.TempDir()
 		conf := wal.DefaultConfiguration()
-		w, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
+		wal, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
 		require.NoError(t, err)
-		require.NotNil(t, w)
+		require.NotNil(t, wal)
 
 		s, err := os.Stat(path)
 		require.NoError(t, err)
@@ -137,24 +137,24 @@ func TestWAL_Insert_Concurrent(t *testing.T) {
 func TestWAL_Offset(t *testing.T) {
 	path := t.TempDir()
 	conf := wal.DefaultConfiguration()
-	w, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
+	wal, err := wal.New(path, conf, waltest.ExampleEntries, zaptest.Logger(t))
 	require.NoError(t, err)
 
-	assert.EqualValues(t, 0, w.Offset(), "Initially, the WAL should start at offset 0")
+	assert.EqualValues(t, 0, wal.Offset(), "Initially, the WAL should start at offset 0")
 
-	writeOffset, err := w.Write(&waltest.ExampleEntry1{
+	writeOffset, err := wal.Write(&waltest.ExampleEntry1{
 		ID:    1,
 		Point: []float32{1, 2},
 	})
 	require.NoError(t, err)
-	assert.EqualValues(t, 1, w.Offset())
-	assert.Equal(t, writeOffset, w.Offset())
+	assert.EqualValues(t, 1, wal.Offset())
+	assert.Equal(t, writeOffset, wal.Offset())
 
-	writeOffset, err = w.Write(&waltest.ExampleEntry1{
+	writeOffset, err = wal.Write(&waltest.ExampleEntry1{
 		ID:    2,
 		Point: []float32{3, 4},
 	})
 	require.NoError(t, err)
-	assert.EqualValues(t, 2, w.Offset())
-	assert.Equal(t, writeOffset, w.Offset())
+	assert.EqualValues(t, 2, wal.Offset())
+	assert.Equal(t, writeOffset, wal.Offset())
 }

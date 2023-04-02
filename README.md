@@ -88,7 +88,6 @@ func Example() {
 		ID:    42,
 		Point: []float32{1, 2, 3},
 	})
-	check(err)
 
 	// You might use the offset in your application or ignore it altogether.
 	fmt.Print(offset)
